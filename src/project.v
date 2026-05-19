@@ -1,27 +1,52 @@
-/*
- * Copyright (c) 2024 Your Name
- * SPDX-License-Identifier: Apache-2.0
- */
+
 
 `default_nettype none
 
-module tt_um_example (
+module tt_um_sr flip flop to jk flip flop (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+    input  wire [7:0] uio_in,   // IO inputs
+    output wire [7:0] uio_out,  // IO outputs
+    output wire [7:0] uio_oe,   // IO direction
+    input  wire       ena,
+    input  wire       clk,
+    input  wire       rst_n
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    // J and K inputs
+    wire J = ui_in[0];
+    wire K = ui_in[1];
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    // Flip-flop output
+    reg Q;
+
+    // JK Flip-Flop Logic
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            Q <= 1'b0;
+        else begin
+            case ({J, K})
+                2'b00: Q <= Q;      // Hold
+                2'b01: Q <= 1'b0;   // Reset
+                2'b10: Q <= 1'b1;   // Set
+                2'b11: Q <= ~Q;     // Toggle
+            endcase
+        end
+    end
+
+    // Output assignments
+    assign uo_out[0] = Q;
+    assign uo_out[1] = ~Q;
+
+    // Remaining outputs unused
+    assign uo_out[7:2] = 6'b0;
+
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
+
+    // Prevent warnings for unused signals
+    wire _unused = &{ena, uio_in, ui_in[7:2], 1'b0};
 
 endmodule
+
+`default_nettype wire
